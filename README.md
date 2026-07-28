@@ -2,13 +2,27 @@
 
 A GitHub Copilot CLI plugin that packages a complete, opinionated **agentic software development lifecycle** — twelve custom agents that take an idea from a one-sentence prompt all the way to deployed, quality-certified production code, **executing multiple issues in parallel** along the way.
 
-## The premise
+## Why this pattern exists
 
-SDLC fundamentals haven't changed. Requirements still have to be understood, designs still have to be argued about, code still has to be reviewed, tested, integrated, and paid down. What agents change is **execution speed** — and speed alone is not an improvement. Applied to large, vaguely-specified units of work, today's coding agents hallucinate APIs, quietly widen their own scope, and leave behind debt faster than anyone can read the diffs.
+**The SDLC didn't become obsolete. It became the bottleneck's shape.**
 
-So this plugin is built on a straightforward bet: **humans keep the ideation and the decisions that are hard to reverse; everything else gets decomposed until it is small enough for an agent to finish safely, then run in parallel.** Ideas and priorities come from you. Work is broken down into atomic issues an autonomous agent can complete in under a day. Those issues are batched into waves that provably don't collide, and each one runs its own full pipeline. Gates catch what speed breaks: a `Reviewer` that verifies the diff against the plan and confirms the code it calls actually exists, a `Quality` agent that certifies the entire suite, an `Integrator` that proves the parallel work still works together, and a `Retrospective` that periodically pays down the drift that accumulates when many agents work at once. Two decisions stay with a human every time: **which wave gets dispatched**, and **what lands on `main`**.
+Ideation, design, architecture, implementation, testing, integration, and operations were never bureaucratic overhead — they're the phases where the expensive mistakes get caught. Skipping requirements doesn't remove the requirements work; it relocates it to production. Agents don't repeal any of that. What they change is how fast the *execution* of each phase can happen, which is a genuinely enormous change and also a strictly narrower one than the marketing suggests. Discipline still has to come from somewhere. In this plugin it comes from the pipeline.
 
-The result is meant to be fast *and* sustainable — accelerated, not reckless.
+**The unit of work is the risk multiplier.** Every failure mode people complain about with coding agents — hallucinated APIs, silent scope creep, tests written to pass rather than to verify, "done" that isn't — scales with how much you hand over at once. Give an agent a vague epic and it will invent the parts it doesn't understand, and it will do so confidently, in a diff too large to review carefully. Give it a precisely specified change to four named files with explicit acceptance criteria, and the same model produces work you can actually verify. Reliability isn't only a property of the model. It's a property of the size and clarity of the request.
+
+**So the core design principle is aggressive decomposition.** Before any autonomous coding happens, a human and the `Product Manager` agent break the idea down — research, stories, epics, and then atomic issues, each small enough for an agent to finish in a single sitting, each with a declared file scope, acceptance criteria, and a definition of done. Decomposition isn't preparation for the real work here. It *is* the work that makes the rest of it safe.
+
+**Small units are what make horizontal scaling possible.** This is the part that pays for the decomposition effort. Atomic issues produce small PRs; small PRs touching disjoint files rarely conflict; work that rarely conflicts can run *concurrently*. That's the entire premise of the `Dispatcher`: if you can prove two issues don't overlap, you can run two full pipelines at once — or six. The constraint on throughput stops being how fast one agent can work and becomes how well the work was decomposed. Decompose better, scale wider. Merge-conflict risk, normally the thing that punishes parallelism, is designed out at the issue level instead of fought at the merge.
+
+**Speed without gates is just faster decay.** Parallelism creates failure modes that no individual pipeline can see: six agents inventing six error-handling conventions, two implementations of the same helper, branches that each pass their own tests and break each other on merge. So every pipeline runs through `Reviewer` (does the diff match the plan, and do the things it calls actually exist?) and `Quality` (does the *entire* suite pass?), consults `Standards & Consistency` so concurrent work converges on one house style, and reconciles through `Integrator`, which re-tests after every merge. `Retrospective` then periodically scans what accumulated anyway and turns it back into scheduled cleanup issues. Velocity gains compound; so does debt. This design assumes both and budgets for both.
+
+**Humans stay where the decisions are irreversible.** This is emphatically not a fire-and-forget system, and the boring parts are automated precisely so attention is available for the parts that matter. You decide what's worth building. You approve which wave of parallel agents gets dispatched. You approve what lands on `main`. And because every agent narrates its work into GitHub Issues as it goes — start, handoff, defect, retry — you can watch a dozen concurrent pipelines from the issue list rather than from twelve scrolling transcripts.
+
+**This is an opinionated pattern, deliberately.** It optimizes for velocity *and* safety at the same time, on the belief that these are complements rather than a tradeoff: the practices that make agent output verifiable — small scope, explicit contracts, mandatory review, full-suite gates, a written audit trail — are the same practices that make it parallelizable. Speed at any cost is easy and gets you a codebase nobody can maintain by month three. The bet here is that a little structure buys a lot more throughput than skipping it ever will.
+
+## In one paragraph
+
+Humans keep ideation and the decisions that are hard to reverse; everything else gets decomposed until it is small enough for an agent to finish safely, then run in parallel. Work is broken into atomic issues an autonomous agent can complete in a single sitting. Those issues are batched into waves that provably don't collide, and each one runs its own full pipeline. Gates catch what speed breaks: a `Reviewer` that verifies the diff against the plan and confirms the code it calls actually exists, a `Quality` agent that certifies the entire suite, an `Integrator` that proves the parallel work still works together, and a `Retrospective` that pays down the drift that accumulates when many agents work at once. The whole run narrates itself into GitHub Issues so it stays legible. Two decisions stay with a human every time: **which wave gets dispatched**, and **what lands on `main`**.
 
 ## The agents
 
@@ -22,9 +36,9 @@ The pipeline is built around three coordinators and nine specialists:
 - **Standards & Consistency** keeps N concurrent implementations looking like they were written by one team.
 - **Retrospective** runs periodically over the accumulated codebase and turns drift, duplication, and debt back into scheduled backlog issues.
 
-Every agent enforces the same non-negotiables: no shortcuts, no placeholders, no `/tmp`, and the **entire** test suite must pass before anything is called done.
+Every agent enforces the same non-negotiables: no shortcuts, no placeholders, no `/tmp`, the **entire** test suite must pass before anything is called done, and **all work is tracked in GitHub Issues** — no work outside an issue, with a comment on every start, handoff, block, defect, and retry, so the issue thread is a live audit trail of the pipeline.
 
-Alongside the agents, the plugin ships **three shared skills** (implementation plan format, parallel safety check, quality gate checklist), **two hooks** (mechanical `/tmp` denial and session-start pipeline context), and the **`/new-idea` command** that kicks the whole thing off.
+Alongside the agents, the plugin ships **four shared skills** (GitHub issue tracking, implementation plan format, parallel safety check, quality gate checklist), **two hooks** (mechanical `/tmp` denial and session-start pipeline context), and the **`/new-idea` command** that kicks the whole thing off.
 
 ## How parallelism works
 
@@ -45,7 +59,7 @@ Two gates are hard requirements, not suggestions:
 | **Before dispatching a wave** | `Dispatcher` | Spawning N concurrent pipelines is the most expensive, least reversible action in the plugin, taken on the strength of an automated safety analysis. You see the proposed issues, the reasoning for why they're judged parallel-safe, what was deliberately held back, and the estimated scope — then decide. |
 | **Before merging to `main`** | `Integrator` | A green suite is necessary, not sufficient. Merging into the *integration* branch happens freely — that's the automated cross-feature testing loop — but putting N features onto the shared trunk is a human call. |
 
-Everything in between runs unattended.
+Everything in between runs unattended — but not unobserved. Every agent narrates its own work into the issue thread as it goes, so "unattended" never means "opaque": you can open the repository's issue list at any moment and see which agent is on which issue, what it just finished, what got sent back for rework, and how many retries it has burned. Both gates above are recorded in writing on the epic issue under a `needs-human` label, so approvals are auditable rather than buried in a chat session.
 
 ## Pipeline
 
@@ -141,16 +155,31 @@ flowchart TD
     SD_A -.->|backlog / scope change| PM
     OPS -.->|production feedback| PM
 
+    ISSUES[("📋 <b>GitHub Issues</b><br/>system of record<br/>start · handoff · defect · retry comments<br/>status:* labels · milestones")]
+    PM ==>|creates every atomic issue| ISSUES
+    DISP -.->|wave composition · status:queued → in-progress| ISSUES
+    TL_A -.->|phase + retry comments| ISSUES
+    TL_B -.->|phase + retry comments| ISSUES
+    TL_N -.->|phase + retry comments| ISSUES
+    INT -.->|merge + integration status| ISSUES
+    RETRO -.->|tech-debt issues| ISSUES
+    OPS -.->|status:deployed| ISSUES
+    GATE1 -.->|approval recorded| ISSUES
+    GATE2 -.->|approval recorded| ISSUES
+    ISSUES -.->|"👀 real-time human visibility"| watcher([Human watching the backlog])
+
     classDef coord fill:#1f6feb,stroke:#0b3d91,color:#fff
     classDef side fill:#8250df,stroke:#4c2889,color:#fff
     classDef ship fill:#1a7f37,stroke:#0f5323,color:#fff
     classDef human fill:#bf8700,stroke:#7d4e00,color:#fff
     classDef retro fill:#cf222e,stroke:#82071e,color:#fff
+    classDef record fill:#24292f,stroke:#010409,color:#fff
     class PM,DISP,INT coord
     class STD side
     class OPS ship
     class GATE1,GATE2 human
     class RETRO retro
+    class ISSUES record
 ```
 
 <details>
@@ -230,6 +259,28 @@ flowchart TD
                             │ (revise + re-expand, and │
                             │  schedule debt paydown)  │
                             └──────────────────────────┘
+
+  ═══════════════════════════════════════════════════════════════════
+   Running alongside every box above: GitHub Issues (system of record)
+  ═══════════════════════════════════════════════════════════════════
+   Every agent above posts to the issue as it works, so a human can
+   watch all N concurrent pipelines from the repo's issue list:
+
+     Product Manager  → creates the issue + milestone     status:backlog
+     Dispatcher       → wave composition, per-issue       status:queued
+                        dispatch, human approval record   status:in-progress
+     Tech Lead        → a comment at every phase change
+     Development      → what was built, files, gate state
+     Reviewer         → approval or numbered findings      status:in-review
+                        (every changes-requested cycle)
+     Quality          → certification or defect report     status:in-testing
+     Integrator       → per-issue merge result + wave      status:integrated
+                        result on the epic, main sign-off
+     Retrospective    → files new issues                   tech-debt
+     Platform & Ops   → what shipped, where, rollback      status:deployed
+
+   No work happens outside an issue. If it is not on the issue,
+   a human cannot see it — and it did not happen.
 ```
 
 </details>
@@ -307,9 +358,10 @@ Shared, agent-agnostic references that keep the pipeline DRY. Several agents cit
 
 | Skill | What it defines | Used by |
 |-------|-----------------|---------|
-| **`implementation-plan-format`** | The canonical template for expanding a GitHub issue into an atomic, autonomous-agent-ready plan — Context, Given-When-Then acceptance criteria, technical approach, an explicit file/module list, test plan, definition of done, out of scope, and `Blocked by:` / `Blocks:` dependencies. Includes the atomicity test and the readiness check. | Product Manager (writes it), Dispatcher (validates against it) |
-| **`parallel-safety-check`** | Nine serialization rules and an eight-step procedure for deciding whether issues can run concurrently: diff their file scopes, check declared dependencies, detect shared migrations/schemas/contracts/registries/lockfiles, build a maximal safe wave, record the reasoning in the epic, re-batch after every wave. Bias is explicit — when in doubt, serialize. | Dispatcher (batching), Integrator (diagnosing collisions) |
-| **`quality-gate-checklist`** | The single source of truth for "done": the full lint / type-check / unit / integration / E2E / coverage / build suite across the **entire** codebase, the integration-time extras, the `/tmp` prohibition with approved alternatives, and the pass/fail certification report format. | Quality, Tech Lead, Integrator, Development |
+| **`github-issue-tracking`** | The system-of-record convention. No work happens outside a GitHub issue; every agent posts a start comment and a handoff comment mirroring its declared handoffs; blocks, defects, and retry iterations are comments rather than private agent context; a single `status:*` label (`backlog` → `queued` → `in-progress` → `in-review` → `in-testing` → `integrated` → `deployed`, plus `blocked`) tracks pipeline position alongside `agentic-sdlc`, `epic`, `wave:N`, `tech-debt`, and `needs-human`; epics are milestones with a tracking issue; human approvals are recorded in writing. | **All twelve agents** |
+| **`implementation-plan-format`** | The canonical template for expanding a GitHub issue into an atomic, autonomous-agent-ready plan — Context, Given-When-Then acceptance criteria, technical approach, an explicit file/module list, test plan, definition of done, out of scope, and `Blocked by:` / `Blocks:` dependencies. Includes the atomicity test and the readiness check. | Product Manager (writes it), Dispatcher (validates against it), Reviewer (enforces its file scope) |
+| **`parallel-safety-check`** | Nine serialization rules and an eight-step procedure for deciding whether issues can run concurrently: diff their file scopes, check declared dependencies, detect shared migrations/schemas/contracts/registries/lockfiles, build a maximal safe wave, record the reasoning in the epic, re-batch after every wave. Bias is explicit — when in doubt, serialize. | Dispatcher (batching), Integrator (diagnosing collisions), Retrospective (scoping patterns) |
+| **`quality-gate-checklist`** | The single source of truth for "done": the full lint / type-check / unit / integration / E2E / coverage / build suite across the **entire** codebase, the integration-time extras, the `/tmp` prohibition with approved alternatives, and the pass/fail certification report format. | Quality, Tech Lead, Integrator, Reviewer, Development |
 
 ## Hooks
 
@@ -318,7 +370,7 @@ Two hooks in `hooks.json` back the global rules with mechanical enforcement inst
 | Hook | Event | Behavior |
 |------|-------|----------|
 | **`deny-tmp-paths`** | `preToolUse` | Inspects shell-executing tool calls and **denies** any command referencing a hardcoded `/tmp` or `/var/tmp` path, returning a reason that points at the approved alternatives (`mktemp -d`, `tempfile.mkdtemp()`, pytest `tmp_path`, `fs.mkdtemp()`, `$RUNNER_TEMP`). Ignores non-shell tools and does not trip on `$TMPDIR`, `mktemp`, or paths that merely contain "tmp". |
-| **`session-context`** | `sessionStart` | Injects a short, persona-agnostic reminder that the session is part of the agentic-sdlc pipeline: stay in whichever agent persona is active, use the declared handoffs rather than doing another agent's job, and honor the full-suite and no-`/tmp` rules defined by the `quality-gate-checklist` skill. |
+| **`session-context`** | `sessionStart` | Injects a short, persona-agnostic reminder that the session is part of the agentic-sdlc pipeline: stay in whichever agent persona is active, use the declared handoffs rather than doing another agent's job, track all work in GitHub Issues per the `github-issue-tracking` skill, honor the full-suite and no-`/tmp` rules from the `quality-gate-checklist` skill, and remember that wave dispatch and merges to `main` need human go-ahead. |
 
 Both hooks ship as `bash` and `powershell` variants under `hooks/` and always exit `0` — `preToolUse` command hooks are fail-closed, so a script error must never block legitimate work.
 
@@ -351,6 +403,7 @@ agentic-sdlc/
 │   ├── retrospective.agent.md           # Retrospective    (periodic debt scan)
 │   └── platform-ops.agent.md            # Platform & Ops
 ├── skills/
+│   ├── github-issue-tracking/SKILL.md
 │   ├── implementation-plan-format/SKILL.md
 │   ├── parallel-safety-check/SKILL.md
 │   └── quality-gate-checklist/SKILL.md
@@ -372,6 +425,7 @@ agentic-sdlc/
 - **Parallel pipelines stay in their lane.** Concurrent Tech Lead runs work only inside the file scope declared in their issue, on their own branch, and never change shared contracts unilaterally. `Reviewer` enforces this by diffing the files actually touched against the plan.
 - **Humans approve the two irreversible steps.** `Dispatcher` asks before spawning a parallel wave; `Integrator` asks before merging to `main`. Silence is not approval, and no agent can grant either one.
 - **Verify, don't assume.** `Reviewer` opens the definition of every symbol a change references. "Probably exists" is not verification — unverifiable claims are how hallucinations reach production.
+- **All work is tracked in GitHub Issues.** No work starts without an issue; every agent comments on start, on handoff, and on every block, defect, or retry, and keeps one `status:*` label current. Defined in full by the `github-issue-tracking` skill.
 
 ## License
 
