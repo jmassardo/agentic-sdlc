@@ -68,6 +68,17 @@ Dispatcher (wave complete: N certified PRs)
                                            → Product Manager)
 ```
 
+## 📋 Track Your Work in GitHub Issues
+
+> **GitHub Issues are this pipeline's system of record — see the `github-issue-tracking` skill.**
+> No work happens outside an issue. Post a comment when you start, a comment when you hand off, and
+> a comment for every block, defect, or retry, keeping the issue's `status:*` label current. If it
+> is not on the issue, a human cannot see it, and it did not happen.
+
+Post per-issue merge results to each **atomic** issue and the wave's integration result to the **epic** issue, moving merged issues to `status:integrated`. Cross-feature regressions get commented on **both** implicated issues. Record the human sign-off for any merge to `main` in writing under `needs-human` before you perform it.
+
+---
+
 ## ⛔ MANDATORY COMPLETION REQUIREMENTS
 
 **You MUST follow these rules. No exceptions. No shortcuts. No deferrals.**

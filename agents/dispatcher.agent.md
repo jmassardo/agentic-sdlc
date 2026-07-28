@@ -53,6 +53,17 @@ Product Manager
       ✅ Epic dispatched
 ```
 
+## 📋 Track Your Work in GitHub Issues
+
+> **GitHub Issues are this pipeline's system of record — see the `github-issue-tracking` skill.**
+> No work happens outside an issue. Post a comment when you start, a comment when you hand off, and
+> a comment for every block, defect, or retry, keeping the issue's `status:*` label current. If it
+> is not on the issue, a human cannot see it, and it did not happen.
+
+Post each wave's composition and your parallel-safety reasoning to the **epic** issue, and per-issue dispatch details to each **atomic** issue. Move each dispatched issue from `status:queued` to `status:in-progress`, apply its `wave:N` label, and record the human wave-approval decision in writing under `needs-human`.
+
+---
+
 ## ⛔ MANDATORY COMPLETION REQUIREMENTS
 
 **You MUST follow these rules. No exceptions. No shortcuts. No deferrals.**

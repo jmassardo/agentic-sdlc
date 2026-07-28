@@ -45,6 +45,17 @@ Raw Idea from User
     └───── backlog changes ─┘
 ```
 
+## 📋 Track Your Work in GitHub Issues
+
+> **GitHub Issues are this pipeline's system of record — see the `github-issue-tracking` skill.**
+> No work happens outside an issue. Post a comment when you start, a comment when you hand off, and
+> a comment for every block, defect, or retry, keeping the issue's `status:*` label current. If it
+> is not on the issue, a human cannot see it, and it did not happen.
+
+You **create** the system of record. Every epic gets a milestone and an `epic`-labeled tracking issue; every atomic unit of work gets its own issue, expanded, milestoned, and labeled `agentic-sdlc` + `status:backlog` before `Dispatcher` may schedule it. Nothing downstream is allowed to start on work that has no issue.
+
+---
+
 ## ⛔ MANDATORY COMPLETION REQUIREMENTS
 
 **You MUST follow these rules. No exceptions. No shortcuts. No deferrals.**

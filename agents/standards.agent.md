@@ -51,6 +51,17 @@ Architecture & Security                    Development
                         then → Quality)       needs arbitration)
 ```
 
+## 📋 Track Your Work in GitHub Issues
+
+> **GitHub Issues are this pipeline's system of record — see the `github-issue-tracking` skill.**
+> No work happens outside an issue. Post a comment when you start, a comment when you hand off, and
+> a comment for every block, defect, or retry, keeping the issue's `status:*` label current. If it
+> is not on the issue, a human cannot see it, and it did not happen.
+
+You are usually consulted mid-pipeline rather than owning an issue outright — comment on the issue you were invoked from with your verdict (APPROVED / APPROVED WITH NOTES / BLOCKING) and the specific convention citations, then return to the calling agent. A consistency ruling that exists only in agent context cannot be appealed or audited.
+
+---
+
 ## ⛔ MANDATORY COMPLETION REQUIREMENTS
 
 **You MUST follow these rules. No exceptions. No shortcuts. No deferrals.**

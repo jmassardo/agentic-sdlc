@@ -50,6 +50,17 @@ When `Dispatcher` invokes you, you are **one of several `Tech Lead` pipelines ru
 
 When invoked directly by a user or by `Product Manager` (single-issue mode), run the full pipeline through `Platform & Ops` as normal.
 
+## 📋 Track Your Work in GitHub Issues
+
+> **GitHub Issues are this pipeline's system of record — see the `github-issue-tracking` skill.**
+> No work happens outside an issue. Post a comment when you start, a comment when you hand off, and
+> a comment for every block, defect, or retry, keeping the issue's `status:*` label current. If it
+> is not on the issue, a human cannot see it, and it did not happen.
+
+You own the audit trail for your issue. Post a start comment when you pick it up, a comment at **every phase transition** you orchestrate, a comment naming the attempt number on **every quality-gate retry** (`retry 2 of 3`), and a completion comment before handing back to `Dispatcher`. A human must be able to reconstruct your entire pipeline run from the issue thread alone.
+
+---
+
 ## Operating Rules
 
 ### 1. Pipeline Execution

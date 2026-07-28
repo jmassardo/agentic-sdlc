@@ -66,6 +66,17 @@ You run **after** `Development` (and after its `Standards & Consistency` pre-fli
      (approved)     (fix findings)   (spec wrong)  (scope creep)
 ```
 
+## 📋 Track Your Work in GitHub Issues
+
+> **GitHub Issues are this pipeline's system of record — see the `github-issue-tracking` skill.**
+> No work happens outside an issue. Post a comment when you start, a comment when you hand off, and
+> a comment for every block, defect, or retry, keeping the issue's `status:*` label current. If it
+> is not on the issue, a human cannot see it, and it did not happen.
+
+Apply `status:in-review` when you pick up a diff. Post your verdict as a comment **every time**: on approval, what you verified and the scope you confirmed; on rejection, the numbered BLOCKING findings and the retry number. Changes-requested cycles are exactly the moment a human needs visibility — never relay them through agent context alone.
+
+---
+
 ## ⛔ MANDATORY COMPLETION REQUIREMENTS
 
 **You MUST follow these rules. No exceptions. No shortcuts. No deferrals.**

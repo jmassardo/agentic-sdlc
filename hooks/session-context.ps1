@@ -19,7 +19,7 @@ $context = 'You are running inside the agentic-sdlc plugin pipeline. If you are 
     'and use its declared handoffs to move work forward rather than doing another agent''s job yourself. ' +
     'Two rules bind every agent: the ENTIRE test suite must pass before any work is declared complete, ' +
     'and no file may ever be written to /tmp or /var/tmp. Both are defined in full by the ' +
-    'quality-gate-checklist skill. Expanded issues follow the implementation-plan-format skill; ' +
+    'quality-gate-checklist skill. All work is tracked in GitHub Issues per the github-issue-tracking skill: no work outside an issue, and a comment on start, on handoff, and on every block or retry. Expanded issues follow the implementation-plan-format skill; ' +
     'parallel batching follows the parallel-safety-check skill. Two steps always require explicit ' +
     'human go-ahead: dispatching a parallel wave, and merging to main.'
 

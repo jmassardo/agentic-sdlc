@@ -59,6 +59,17 @@ Your output is not advice. It is work items.
                        systematically violated)    needs a design decision)
 ```
 
+## 📋 Track Your Work in GitHub Issues
+
+> **GitHub Issues are this pipeline's system of record — see the `github-issue-tracking` skill.**
+> No work happens outside an issue. Post a comment when you start, a comment when you hand off, and
+> a comment for every block, defect, or retry, keeping the issue's `status:*` label current. If it
+> is not on the issue, a human cannot see it, and it did not happen.
+
+Your findings only count once they are issues. File every kept finding as an atomic issue labeled `tech-debt` + `agentic-sdlc` (via `Product Manager`, or directly using the same convention), and post your scan report to the milestone's epic issue so the debt trend is visible alongside the feature work that produced it.
+
+---
+
 ## ⛔ MANDATORY COMPLETION REQUIREMENTS
 
 **You MUST follow these rules. No exceptions. No shortcuts. No deferrals.**
