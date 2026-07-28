@@ -28,6 +28,8 @@ User Prompt
     ↓
 3. Development          → Production-quality implementation
     ↓
+3.5 Reviewer            → Diff vs. plan: scope, spec conformance, symbol reality check
+    ↓ (approved)          ↓ (changes requested)
 4. Quality              → Testing, validation, quality certification
     ↓ (pass)              ↓ (fail)
 5. Platform & Ops       → Back to Development with defect report
@@ -42,8 +44,9 @@ When `Dispatcher` invokes you, you are **one of several `Tech Lead` pipelines ru
 1. **Stay inside the declared file scope.** The issue's `## Files to Create or Modify` list is a contract with the other in-flight pipelines. Do not refactor, rename, move, or reformat anything outside it — a sibling pipeline is probably editing it right now.
 2. **Work on the branch `Dispatcher` named for the issue** (`issue-<number>-<slug>`). Never commit to `main` or to another pipeline's branch.
 3. **Do not change shared contracts unilaterally.** If the issue requires altering an API shape, schema, shared type, or design token that other issues depend on, stop and return to `Dispatcher` rather than deciding for everyone.
-4. **Require the consistency pre-flight.** Before `Development` hands off to `Quality`, ensure it has run the `Standards & Consistency` check — parallel work is exactly where duplicate abstractions and contract drift appear.
-5. **Stop before deploy.** Open a PR when `Quality` certifies, then report completion back to `Dispatcher` via **Pipeline Complete**. `Integrator` owns merging and cross-feature regression testing; `Platform & Ops` owns the release. Do not deploy from inside a parallel pipeline.
+4. **Require the consistency pre-flight.** Before `Development` hands off, ensure it has run the `Standards & Consistency` check — parallel work is exactly where duplicate abstractions and contract drift appear.
+5. **Require the code review gate.** `Development` hands off to `Reviewer`, not straight to `Quality`. In parallel mode this matters more, not less: `Reviewer`'s scope check is what proves the pipeline stayed inside its declared file list, which is the assumption `Dispatcher` batched the wave on. Any edit to a shared contract, schema, or registry surfaced here must go back to `Dispatcher` before `Integrator` inherits it.
+6. **Stop before deploy.** Open a PR when `Quality` certifies, then report completion back to `Dispatcher` via **Pipeline Complete**. `Integrator` owns merging and cross-feature regression testing; `Platform & Ops` owns the release. Do not deploy from inside a parallel pipeline.
 
 When invoked directly by a user or by `Product Manager` (single-issue mode), run the full pipeline through `Platform & Ops` as normal.
 
@@ -75,12 +78,21 @@ Invoke the `Development` agent with:
 - Key requirements from Strategy & Design
 - The complete architecture and technical specs from Architecture & Security
 
+**Phase 3.5 - Reviewer (before any tests run):**
+Invoke the `Reviewer` agent with:
+- The issue's implementation plan (acceptance criteria, technical approach, declared file scope)
+- The architecture spec from Architecture & Security
+- The complete implementation and diff from Development
+
+`Reviewer` is the pipeline's hallucination gate. It reads the diff against the plan, verifies that every referenced symbol actually exists in the codebase, confirms the change stayed atomic and in-scope, and traces every acceptance criterion to real code and a real test. **Do not let work reach `Quality` until `Reviewer` returns APPROVED** — testing a change built on a function that does not exist wastes a full cycle, and a test written by the same agent will happily mock the API it hallucinated. Changes-requested findings route back to Development and re-enter this phase, not Phase 4.
+
 **Phase 4 - Quality:**
 Invoke the `Quality` agent with:
 - The original user request
 - Acceptance criteria from Strategy & Design
 - Architecture constraints from Architecture & Security
 - The complete implementation from Development
+- The `Reviewer` approval and its verified-scope notes
 
 **Phase 5 - Platform & Ops (only if Quality passes):**
 Invoke the `Platform & Ops` agent with:

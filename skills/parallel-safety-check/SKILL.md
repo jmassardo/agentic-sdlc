@@ -11,6 +11,7 @@ This skill defines how to decide whether issues can run **at the same time, on s
 - **Dispatcher** — when batching issues into parallel waves. This is the core decision procedure.
 - **Integrator** — when diagnosing why a wave produced conflicts, to feed the answer back into batching.
 - **Product Manager** — when an issue keeps failing the check and needs re-scoping.
+- **Retrospective** — when a wave's collisions turn out to be a pattern worth fixing in how issues are scoped.
 
 The governing bias: **a false conflict costs one wave; a missed conflict costs an integration failure.** When in doubt, serialize.
 

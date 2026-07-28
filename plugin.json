@@ -1,6 +1,6 @@
 {
   "name": "agentic-sdlc",
-  "description": "An end-to-end agentic software development lifecycle: a Product Manager agent turns a raw idea into researched GitHub epics and atomic, fully-expanded issues, and a Tech Lead orchestrator drives each issue through strategy, architecture, development, quality, and platform operations with a retry-backed quality gate.",
+  "description": "An end-to-end agentic software development lifecycle: a Product Manager agent turns a raw idea into researched GitHub epics and atomic, fully-expanded issues; a Dispatcher batches them into parallel-safe waves you approve; concurrent Tech Lead pipelines drive each issue through strategy, architecture, development, code review, quality, and platform operations; an Integrator reconciles the parallel work; and a Retrospective keeps the accumulated debt paid down.",
   "version": "1.0.0",
   "author": {
     "name": "Jenna Massardo"

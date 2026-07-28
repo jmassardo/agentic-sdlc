@@ -11,6 +11,7 @@ This skill is the **single source of truth** for what "done" means in the agenti
 - **Quality** — certifying a branch. Nothing ships without this passing.
 - **Tech Lead** — enforcing the gate across every phase, and reviewing sub-agent claims against it.
 - **Integrator** — re-running this after **every single merge**, because per-branch certification never saw the combined state.
+- **Reviewer** — pre-checking the diff for violations (`/tmp` paths, added TODOs, stubs, weakened tests) before a single test runs.
 - **Development** — self-checking before handoff, so `Quality` isn't the first to find a failure.
 
 ---

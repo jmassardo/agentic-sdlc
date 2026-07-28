@@ -10,6 +10,7 @@ This skill defines the **single canonical shape** of an expanded GitHub issue in
 **Who uses this skill**
 - **Product Manager** — when expanding base issues (Phase 5, the expansion loop). This is the template to write.
 - **Dispatcher** — when validating that an issue is atomic and ready before dispatching it. This is the template to check against.
+- **Reviewer** — when checking the diff against the plan. The `Files to Create or Modify` list is the scope contract it enforces.
 - **Tech Lead / Development** — when reading an issue as the authoritative spec.
 
 ## The template

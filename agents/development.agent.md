@@ -7,6 +7,10 @@ handoffs:
     agent: Architecture & Security
     prompt: "Please perform a security review of the implementation above. Check authentication, authorization, input validation, and OWASP Top 10 compliance."
     send: true
+  - label: Code Review
+    agent: Reviewer
+    prompt: "Implementation is complete and the consistency pre-flight has been run. Please review the diff against the issue's implementation plan and the architecture spec before any tests are run: confirm the change stayed atomic and in-scope, verify that every referenced import, function, attribute, endpoint, config key, and mock target actually exists in the codebase, trace every acceptance criterion to implementing code and a covering test, and check for quality-gate violations (/tmp paths, TODOs, stubs, weakened tests). Classify findings as BLOCKING or ADVISORY. Implementation:"
+    send: true
   - label: Start Testing
     agent: Quality
     prompt: "The implementation is complete. Please run comprehensive tests including unit tests for all new code, integration tests for APIs, E2E tests for critical paths, and security and performance validation."
@@ -376,6 +380,24 @@ Error Handling:
 4. Perform self code review
 5. Document APIs and complex logic
 
+## Your Next Step Is Reviewer, Not Quality
+
+**When implementation is complete, hand off to the `Reviewer` agent — not directly to `Quality`.**
+
+The order is: `Standards & Consistency` pre-flight → **`Reviewer`** → `Quality`.
+
+`Reviewer` reads the actual diff against the issue's implementation plan and the architecture spec: it checks that the change stayed atomic and in-scope, that every import, function, attribute, endpoint, config key, and mock target you referenced **actually exists in the codebase**, that every acceptance criterion maps to real code and a real test, and that no `/tmp` path, `TODO`, stub, or weakened test crept in. It is the pipeline's explicit hallucination-catching checkpoint, and it exists so that test cycles are never spent on work that is already wrong.
+
+What this means for you:
+
+- **Do not hand a partially-complete change to `Reviewer` "so review can start in parallel."** Finish it first.
+- **Expect the scope check.** `Reviewer` diffs the files you actually touched against the file list in the issue plan. Every extra file is a finding until proven incidental. If you genuinely needed to touch a file the plan did not list, say so explicitly in your handoff and explain why — do not let it be discovered.
+- **Expect symbol verification.** `Reviewer` opens the definition of everything you call. A helper that "should" exist, a patch target that silently mocks nothing, or a library API from a different major version will all come straight back to you.
+- **Fix every BLOCKING finding and re-run the FULL test suite before returning.** Partial fixes cost another round-trip.
+- Only after `Reviewer` issues **APPROVED** does the work reach `Quality` for full-suite certification.
+
+The handoff package below is what you produce for that review-then-test sequence; `Reviewer` uses it to orient, and `Quality` inherits it once the change is approved.
+
 ## Code Review Checklist
 
 Before handoff, verify:
@@ -392,10 +414,10 @@ Before handoff, verify:
 
 ## Handoff Package Format
 
-When ready to hand off to Quality Agent, produce:
+When implementation is complete, produce this package and hand it to `Reviewer` (which passes it on to `Quality` after approval):
 
 ```markdown
-## Implementation Package for Quality Agent
+## Implementation Package for Reviewer → Quality
 
 ### Implementation Summary
 [Overview of what was built]
