@@ -313,6 +313,28 @@ Improve existing code without changing behavior:
 - Configure development environments
 - Optimize build times and development workflows
 
+## Implement the Flags, Observability, and Cost Guardrails You Were Given
+
+`Architecture & Security` specified these in the spec and `Standards & Consistency` owns their exact form. Your job is to implement them, not to redesign them. `Reviewer` checks all three before you reach `Quality`.
+
+**Feature flags.** Wrap incomplete or risky work behind the flag named in the spec, using the project's existing flag helper and naming convention — never a bespoke `if (DEBUG)` or a commented-out block. This is what lets your small atomic PR merge to `main` without exposing a half-finished feature.
+- The flag defaults to **off**. Verify the default path is the current, working behavior.
+- Both paths must compile, type-check, and pass lint. Flagged-off code is still real code.
+- Never leave a dead branch that cannot be reached in either state.
+- If the spec called for a flag and you did not add one, say so explicitly in your handoff rather than letting `Reviewer` discover it.
+
+**Observability.** Emit exactly the metrics, logs, and traces the spec named, in the format `Standards & Consistency` defines — same logger, same structured field names, same metric naming scheme. Do not invent a parallel convention.
+- Never log secrets, tokens, credentials, or PII. Redact at the call site, not downstream.
+- Instrument the failure paths, not just the happy path — the error case is the one being debugged at 3am.
+- If the spec named no signals for a feature that clearly needs them, flag it back to `Architecture & Security` rather than guessing.
+
+**Cost.** Avoid the patterns that turn a working feature into a large invoice:
+- No unbounded loops over paid APIs. Batch, cache, and bound the iteration count.
+- Paginate anything that can grow — list endpoints, queries, exports. A query with no `LIMIT` is a future incident.
+- Cache where the spec called for it, using the shared helper rather than a private dictionary.
+- Respect rate limits and back off on retries; retry storms are both a cost and an availability problem.
+- No N+1 queries or per-item network calls inside a loop where a batch call exists.
+
 ## Development Standards
 
 ### Code Quality Principles

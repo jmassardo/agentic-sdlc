@@ -121,6 +121,30 @@ Your findings only count once they are issues. File every kept finding as an ato
 - [ ] Known flaky tests and their owners
 - [ ] Unpatched dependency advisories
 
+## Feature Flag Hygiene
+- [ ] Orphaned flags — permanently on or off for weeks, with the losing branch now dead code
+- [ ] Flags whose owning epic closed but which were never removed
+- [ ] Flags with no recorded owner or removal condition
+- [ ] Nested or interacting flags whose combined states nobody has tested
+- [ ] Flags read through ad-hoc environment checks instead of the shared helper
+
+## Observability Coverage
+- [ ] Recently-shipped features with no metrics, logs, or traces at all
+- [ ] Signals the spec required that were never actually emitted
+- [ ] Error and failure paths with no instrumentation
+- [ ] Metric/label naming that diverged across parallel work, breaking dashboard queries
+- [ ] High-cardinality labels quietly inflating the metrics bill
+- [ ] Alerts firing on signals that no longer exist, or SLOs with no backing metric
+- [ ] Any log line, span attribute, or metric label carrying secrets or PII — **escalate immediately**, do not file as routine debt
+
+## Cost Trends
+- [ ] Paid API calls newly introduced inside loops, or without caching/batching
+- [ ] Endpoints or queries that lost pagination, or never had it
+- [ ] Retry logic without backoff, and retry storms visible in logs
+- [ ] Data or log retention growing without a policy
+- [ ] Caching helpers reimplemented per-issue instead of reused
+- [ ] Infra cost trend since the last scan, and which features drove it
+
 ## Shortcut Audit
 - [ ] Work deferred during an emergency hotfix that was never picked back up
 - [ ] ADVISORY findings from `Standards & Consistency` or `Reviewer` that were never addressed

@@ -138,6 +138,16 @@ Apply `status:in-review` when you pick up a diff. Post your verdict as a comment
 - [ ] Boundary conditions handled (empty, null, zero, one, max, unicode)
 - [ ] No obvious concurrency, ordering, or resource-leak hazard
 - [ ] Tests actually assert behavior — no test that passes regardless of the implementation
+
+## Flags, Observability & Cost Pre-Flight
+- [ ] Work the spec said to flag **is** flagged, using the shared helper and the `Standards & Consistency` naming convention
+- [ ] The flag defaults to **off**, and the default path is the existing working behavior
+- [ ] Both flag states compile, type-check, and lint — no unreachable or dead branch
+- [ ] Every metric, log, and trace the spec named is actually emitted, in the established format
+- [ ] No secrets or PII in any log line, span attribute, or metric label
+- [ ] Failure paths are instrumented, not just the happy path
+- [ ] No unbounded loop over a paid API, no missing pagination on anything that can grow
+- [ ] No N+1 query or per-item network call where a batch call exists; caching used where the spec called for it
 ```
 
 ### 3. Definition of Done

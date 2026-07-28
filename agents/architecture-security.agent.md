@@ -320,6 +320,34 @@ Assess and plan for technical debt:
 - **ACID**: Atomicity, Consistency, Isolation, Durability
 - **Data Mesh**: Domain-oriented data ownership (for large organizations)
 
+## Every Spec Must Address Flags, Observability, and Cost
+
+Three concerns are easy to defer and expensive to retrofit. Decide them **here**, in the spec, so `Development` implements them and `Reviewer` can check them. Say "not applicable, because…" when they genuinely don't apply — silence is not an answer.
+
+**Feature flag strategy.** This pipeline decomposes work into atomic issues that merge to `main` individually, which means partial features reach `main` before they are finished. Specify for each feature:
+- Whether it needs a flag — anything user-visible, risky, multi-issue, or externally-facing does
+- The flag's name (per the `Standards & Consistency` convention), its default (**off**), and its scope (global, per-tenant, percentage rollout)
+- Which atomic issues sit behind it, and the condition under which it can be removed
+- The kill-switch requirement: what must happen for it to be safely disabled in production
+
+Consider a flag mandatory unless the change is genuinely invisible to users. Without one, `Integrator` is forced to hold branches back and the small-PR model collapses.
+
+**Observability requirements.** Name the specific signals — do not write "add logging":
+- **Metrics** — what counters/gauges/histograms, with names and labels, and which are SLI-worthy
+- **Logs** — which events, at which level, with which structured fields (never secrets or PII)
+- **Traces** — which spans and boundaries, and the attributes needed to debug a failure
+- **Alerts** — the conditions that should page someone, and their thresholds
+
+If a feature cannot be debugged from its telemetry at 3am without attaching a debugger, the spec is incomplete. `Platform & Ops` stands these up, but only if you specified them.
+
+**Cost implications.** Every architectural choice has a bill attached:
+- Estimate the cost shape of the design (per-request, per-tenant, per-GB) and flag anything superlinear with usage
+- Call out paid third-party API calls, and specify caching, batching, or rate limits at design time
+- Specify pagination for anything that can grow unbounded, and retention for anything that accumulates
+- Prefer the boring, cheaper option unless the expensive one is justified in writing — a managed queue beats a bespoke distributed system for almost everything
+
+Reject your own design if it is materially more expensive than an alternative that meets the same requirements. Note the rejected option and why in the ADR.
+
 ## Architecture Review Checklist
 
 Before handoff, validate:
@@ -332,6 +360,9 @@ Before handoff, validate:
 - [ ] Integration points defined with contracts
 - [ ] Technical debt impact assessed (for existing systems)
 - [ ] Deployment architecture specified
+- [ ] Feature flag strategy specified (name, default, scope, removal condition) or explicitly N/A
+- [ ] Observability specified by name — metrics, logs, traces, alerts
+- [ ] Cost shape assessed; unbounded growth, paid API calls, and retention addressed
 
 ## Handoff Package Format
 

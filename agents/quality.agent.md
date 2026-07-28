@@ -427,6 +427,28 @@ E2E Testing:
 4. Document any defects found
 5. Provide release recommendation
 
+## Test Feature Flags and Telemetry, Not Just Business Logic
+
+A feature can be functionally correct and still break production because its flag doesn't toggle or its metrics never fire. Both are in scope for you, and both belong in the test plan from Phase 1.
+
+**Feature flags — test both states.** A flag is a branch, and an untested branch is an untested code path:
+- The feature behaves correctly with the flag **on**
+- The **existing** behavior is unchanged with the flag **off** — this is the one that protects `main`
+- The default state is off, verified from a clean config with nothing overridden
+- Toggling at runtime does not corrupt state, leave a half-migrated record, or require a restart
+- Tests that need the flag on set it explicitly and reset it afterward, so they don't leak into the rest of the suite
+
+If a flagged feature only has tests for the on state, that is a defect. Half the shipped code paths are untested.
+
+**Observability — assert the signals exist.** Verify against the spec that the named signals are actually emitted, not merely that logging code exists:
+- Each specified metric fires, with the right name, unit, and labels
+- Each specified log event is emitted at the right level with the required structured fields
+- Traces produce the expected spans across the boundaries the spec called out
+- Telemetry fires on **failure** paths too — assert the error case emits its signal
+- No secrets or PII appear in any log line, span attribute, or metric label. Treat a leak here as a **BLOCKING** security defect, not a nit.
+
+Missing or malformed telemetry is a defect against the spec and goes back to `Development` like any other. `Platform & Ops` will build alerts on these signals; if they don't fire, the alerts are silently dead.
+
 ## Quality Gates
 
 ### Gate 1: Unit Test Gate
