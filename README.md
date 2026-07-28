@@ -142,7 +142,7 @@ flowchart TD
     GATE2{{"🧑 <b>HUMAN APPROVAL REQUIRED</b><br/>merge integration branch → <code>main</code>"}}
     GATE2 -.->|"go-ahead"| OPS
 
-    OPS["🚀 <b>Platform &amp; Ops</b><br/>CI/CD · deploy · monitoring · rollback"]
+    OPS["🚀 <b>Platform &amp; Ops</b><br/>CI/CD · artifacts · deploy ·<br/>flag rollout + kill switch ·<br/>monitoring · cost · rollback"]
     OPS --> done([✅ Shipped])
 
     INT -.->|"milestone closed /<br/>every ~3 waves"| RETRO
@@ -350,7 +350,7 @@ If you already have a well-specified issue, you can skip straight to **Tech Lead
 | **Quality** | Test architecture plus unit, integration, E2E, performance, and security testing. Certifies the **entire** suite for its branch, not just the changed files, and reports defects back for rework. **Handoffs:** → Platform & Ops (deploy to production), → Development (report defects), → Strategy & Design (clarify requirements). |
 | **Integrator** | Runs after concurrent pipelines finish. Merges/rebases each PR into the epic's integration branch in dependency order, resolves conflicts preserving both sides' intent, and re-runs the full test suite after **every** merge to catch cross-feature regressions Quality never saw. Verifies migrations apply from scratch and that every issue's acceptance criteria still hold post-merge. **Requires human approval before merging to `main`.** **Handoffs:** → Development (report integration failure), → Dispatcher (wave integrated), → Platform & Ops (deploy epic), → Retrospective (periodic drift scan), → Tech Lead (escalate integration conflict). |
 | **Retrospective** | The only agent that isn't per-issue. Runs periodically — at milestone close or every ~3 integrated waves — and scans the accumulated codebase for what no single pipeline can see: duplicated logic introduced by different parallel runs, systematic convention drift, superseded patterns, dead code, debt indicators (TODO count, skipped tests, coverage and suite-runtime trends), and shortcuts taken under pressure. Triages ruthlessly to 5–10 findings, packages each as an atomic remediation task with a file scope, and reports whether debt is being paid down faster than it accrues. **Handoffs:** → Product Manager (file backlog issues), → Standards & Consistency (systematic drift), → Architecture & Security (architectural debt). |
-| **Platform & Ops** | Platform engineering, DevOps, SRE, and security operations. Final agent in the chain — reached from Quality in single-issue mode or from Integrator once all waves are integrated and the merge to `main` is approved: infrastructure, CI/CD, deployment with rollback, monitoring, and alerting. **Handoffs:** → Development (report app issue), → Architecture & Security (report infra issue), → Strategy & Design (new feature request). |
+| **Platform & Ops** | Platform engineering, DevOps, SRE, and security operations. Final agent in the chain — reached from Quality in single-issue mode or from Integrator once all waves are integrated and the merge to `main` is approved: infrastructure, CI/CD pipeline definitions, artifact registry and versioning, deployment with rollback, feature-flag rollout and kill switches, monitoring and alerting, and infrastructure cost controls. Cuts releases from `CHANGELOG.md`. **Closes the feedback loop** — production learnings go back to Product Manager for research and decomposition, exactly like a brand-new idea. **Handoffs:** → Development (report app issue), → Architecture & Security (report infra issue), → **Product Manager (new feature request — primary intake)**, → Strategy & Design (refine an already-formed feature). |
 
 ## Skills
 
@@ -362,17 +362,21 @@ Shared, agent-agnostic references that keep the pipeline DRY. Several agents cit
 | **`implementation-plan-format`** | The canonical template for expanding a GitHub issue into an atomic, autonomous-agent-ready plan — Context, Given-When-Then acceptance criteria, technical approach, an explicit file/module list, test plan, definition of done, out of scope, and `Blocked by:` / `Blocks:` dependencies. Includes the atomicity test and the readiness check. | Product Manager (writes it), Dispatcher (validates against it), Reviewer (enforces its file scope) |
 | **`parallel-safety-check`** | Nine serialization rules and an eight-step procedure for deciding whether issues can run concurrently: diff their file scopes, check declared dependencies, detect shared migrations/schemas/contracts/registries/lockfiles, build a maximal safe wave, record the reasoning in the epic, re-batch after every wave. Bias is explicit — when in doubt, serialize. | Dispatcher (batching), Integrator (diagnosing collisions), Retrospective (scoping patterns) |
 | **`quality-gate-checklist`** | The single source of truth for "done": the full lint / type-check / unit / integration / E2E / coverage / build suite across the **entire** codebase, the integration-time extras, the `/tmp` prohibition with approved alternatives, and the pass/fail certification report format. | Quality, Tech Lead, Integrator, Reviewer, Development |
+| **`changelog-convention`** | Keep a Changelog / SemVer conventions sized for a pipeline that merges dozens of tiny PRs: one entry per *issue* rather than per commit, written in user-facing language when the PR merges, six fixed categories, breaking changes marked explicitly, and flagged-off work held back until the flag is flipped on. Prevents release history fragmenting across atomic PRs. | Integrator (writes entries as waves merge), Platform & Ops (cuts releases and notes from it), Tech Lead |
 
 ## Hooks
 
-Two hooks in `hooks.json` back the global rules with mechanical enforcement instead of relying on prose alone.
+Three hooks in `hooks.json` back the global rules with mechanical enforcement instead of relying on prose alone.
 
 | Hook | Event | Behavior |
 |------|-------|----------|
 | **`deny-tmp-paths`** | `preToolUse` | Inspects shell-executing tool calls and **denies** any command referencing a hardcoded `/tmp` or `/var/tmp` path, returning a reason that points at the approved alternatives (`mktemp -d`, `tempfile.mkdtemp()`, pytest `tmp_path`, `fs.mkdtemp()`, `$RUNNER_TEMP`). Ignores non-shell tools and does not trip on `$TMPDIR`, `mktemp`, or paths that merely contain "tmp". |
+| **`deny-secrets`** | `preToolUse` | **Denies** shell commands that look like they are about to introduce a credential: private key headers, recognized provider key formats (AWS `AKIA`/`ASIA`, GitHub `ghp_`/`github_pat_`, Slack, OpenAI, Google, GitLab), high-entropy literals assigned to secret-shaped variable names, and `git add`/`git commit` of a real `.env` file. The denial reason points at a secrets manager, runtime environment variables, or a gitignored local config. Placeholders (`your-token-here`, `changeme`), `$VAR` references, and `.env.example` pass through untouched. |
 | **`session-context`** | `sessionStart` | Injects a short, persona-agnostic reminder that the session is part of the agentic-sdlc pipeline: stay in whichever agent persona is active, use the declared handoffs rather than doing another agent's job, track all work in GitHub Issues per the `github-issue-tracking` skill, honor the full-suite and no-`/tmp` rules from the `quality-gate-checklist` skill, and remember that wave dispatch and merges to `main` need human go-ahead. |
 
-Both hooks ship as `bash` and `powershell` variants under `hooks/` and always exit `0` — `preToolUse` command hooks are fail-closed, so a script error must never block legitimate work.
+The `deny-secrets` hook is the security half of this plugin's "velocity **and** safety" premise. Many parallel agents committing fast is exactly the condition under which a credential slips into history — and a leaked secret is the one class of mistake a follow-up commit cannot fix, since rotation is the only real remedy. So it is blocked mechanically at the tool boundary rather than left for `Reviewer` to catch by eye.
+
+All hooks ship as `bash` and `powershell` variants under `hooks/` and always exit `0` — `preToolUse` command hooks are fail-closed, so a script error must never block legitimate work.
 
 ## Commands
 
@@ -411,9 +415,11 @@ flowchart LR
     SKILLS --> S2["implementation-plan-format/SKILL.md"]
     SKILLS --> S3["parallel-safety-check/SKILL.md"]
     SKILLS --> S4["quality-gate-checklist/SKILL.md"]
+    SKILLS --> S5["changelog-convention/SKILL.md"]
 
     HOOKS --> H1["deny-tmp-paths.sh / .ps1<br/><i>preToolUse</i>"]
-    HOOKS --> H2["session-context.sh / .ps1<br/><i>sessionStart</i>"]
+    HOOKS --> H2["deny-secrets.sh / .ps1<br/><i>preToolUse</i>"]
+    HOOKS --> H3["session-context.sh / .ps1<br/><i>sessionStart</i>"]
 
     CMDS --> C1["new-idea.md<br/><i>/new-idea</i>"]
 
@@ -427,6 +433,9 @@ flowchart LR
 
 - **All tests must pass — the entire suite, every time.** Lint, type checks, unit, integration, E2E, coverage thresholds, and the build. "Pre-existing" and "unrelated" failures still block completion, per branch (Quality) and after every merge (Integrator). Defined in full by the `quality-gate-checklist` skill.
 - **Never write to `/tmp` or system temp directories.** Use `tempfile`/`tmp_path`, `fs.mkdtemp`, `mktemp -d`, or `$RUNNER_TEMP`. Enforced mechanically by the `deny-tmp-paths` `preToolUse` hook.
+- **Never commit a credential.** Keys, tokens, private keys, and real `.env` files stay out of git — use a secrets manager, runtime environment variables, or gitignored local config. Enforced mechanically by the `deny-secrets` `preToolUse` hook, because rotation is the only remedy once a secret reaches history.
+- **Risky and incomplete work ships behind a feature flag.** Architecture & Security specifies the flag, Standards & Consistency owns its naming, Development implements it default-off, Reviewer checks it, Quality tests both states, and Platform & Ops operates the rollout and kill switch. This is what lets atomic PRs merge to `main` before a feature is finished.
+- **Observability and cost are design inputs, not afterthoughts.** Specs name the metrics, logs, traces, and alerts a feature needs, and assess its cost shape — unbounded loops over paid APIs, missing pagination, and unbounded retention are caught at design time and re-checked by Reviewer and Retrospective.
 - **No shortcuts, no deferrals, no placeholders.** No TODOs, no FIXMEs, no "TBD" acceptance criteria.
 - **Respect established patterns and technology choices.** New frameworks or databases require explicit Architecture & Security review with justification, and Standards & Consistency treats duplicate abstractions as BLOCKING.
 - **Parallel pipelines stay in their lane.** Concurrent Tech Lead runs work only inside the file scope declared in their issue, on their own branch, and never change shared contracts unilaterally. `Reviewer` enforces this by diffing the files actually touched against the plan.
