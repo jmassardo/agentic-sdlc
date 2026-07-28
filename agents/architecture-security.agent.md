@@ -11,6 +11,10 @@ handoffs:
     agent: Strategy & Design
     prompt: "The requirements need clarification. Please review the following questions and refine the user story package."
     send: true
+  - label: Validate Against Conventions
+    agent: Standards & Consistency
+    prompt: "Multiple parallel issues will be implemented against the specification below, so any inconsistency here multiplies across all of them. Please validate the proposed contracts, schemas, naming, error shapes, and shared-type reuse against the conventions reference and prevailing codebase practice. Flag anything that would introduce a duplicate abstraction or diverge from established patterns, and document any genuinely new pattern that implementers must follow. Specification:"
+    send: true
 ---
 
 # Architecture & Security Agent

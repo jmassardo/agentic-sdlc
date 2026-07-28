@@ -15,6 +15,10 @@ handoffs:
     agent: Strategy & Design
     prompt: "During implementation, I discovered an issue with the requirements. Please review and clarify the following:"
     send: true
+  - label: Consistency Pre-Flight
+    agent: Standards & Consistency
+    prompt: "Implementation is complete but not yet handed to Quality. Please run a pre-flight consistency check against the conventions reference and prevailing codebase practice: API/interface contracts, error envelope, design system and token usage, naming, file placement, shared library reuse, and any duplicated abstraction introduced by parallel work. Classify findings as BLOCKING or ADVISORY. Implementation:"
+    send: true
 ---
 
 # Development Agent
