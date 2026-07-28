@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": "bash \"${PLUGIN_ROOT}/hooks/deny-tmp-paths.sh\"",
+        "powershell": "pwsh -NoProfile -File \"${PLUGIN_ROOT}/hooks/deny-tmp-paths.ps1\"",
+        "timeoutSec": 10
+      }
+    ],
+    "sessionStart": [
+      {
+        "type": "command",
+        "bash": "bash \"${PLUGIN_ROOT}/hooks/session-context.sh\"",
+        "powershell": "pwsh -NoProfile -File \"${PLUGIN_ROOT}/hooks/session-context.ps1\"",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

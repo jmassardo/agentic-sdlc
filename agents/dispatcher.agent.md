@@ -75,6 +75,8 @@ Product Manager
 - [ ] Every "Blocked by" / "Blocks" relationship is recorded in the graph
 
 ## Wave Safety
+> Apply the **`parallel-safety-check` skill** — it holds the nine serialization rules and the eight-step batching procedure you must follow. Validate each issue against the readiness check in the **`implementation-plan-format` skill** before it is eligible for dispatch at all.
+
 - [ ] No two issues in the wave modify the same file
 - [ ] No two issues in the wave modify the same interface/contract/schema
 - [ ] No issue in the wave is blocked by an unfinished issue

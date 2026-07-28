@@ -12,6 +12,8 @@ The pipeline is built around three coordinators and seven specialists:
 
 Every agent enforces the same non-negotiables: no shortcuts, no placeholders, no `/tmp`, and the **entire** test suite must pass before anything is called done.
 
+Alongside the agents, the plugin ships **three shared skills** (implementation plan format, parallel safety check, quality gate checklist), **two hooks** (mechanical `/tmp` denial and session-start pipeline context), and the **`/new-idea` command** that kicks the whole thing off.
+
 ## How parallelism works
 
 Per-issue pipelines are only safe if something owns the *scheduling* and something owns the *reconciliation*. That's the Dispatcher/Integrator pair:
@@ -21,6 +23,92 @@ Per-issue pipelines are only safe if something owns the *scheduling* and somethi
 - **Integrator** runs when a wave finishes. `Quality` only ever certified each branch *in isolation*, so the Integrator merges them one at a time in dependency order, resolves conflicts preserving both sides' intent, and **re-runs the entire test suite after every single merge** to catch cross-feature regressions. Failures route back to `Development`; a green wave routes back to `Dispatcher` for the next wave, or on to `Platform & Ops` when the epic is done.
 
 ## Pipeline
+
+```mermaid
+flowchart TD
+    idea([Raw idea from user]) --> PM
+
+    PM["🧭 <b>Product Manager</b><br/>research → epics → atomic issues<br/>→ expanded implementation plans"]
+    PM --> DISP
+
+    DISP["🗂️ <b>Dispatcher</b><br/>dependency + file-conflict graph<br/>→ parallel-safe waves"]
+
+    DISP -->|dispatch issue A| TL_A
+    DISP -->|dispatch issue B| TL_B
+    DISP -->|dispatch issue N| TL_N
+
+    subgraph WAVE ["Wave — concurrent Tech Lead pipelines (one per issue, one branch each)"]
+        direction LR
+
+        subgraph TL_A ["🧑‍✈️ Tech Lead · issue A"]
+            direction TB
+            SD_A["Strategy &amp; Design"] --> AS_A["Architecture &amp; Security"]
+            AS_A --> DEV_A["Development"]
+            DEV_A --> Q_A{"Quality<br/>full suite?"}
+            Q_A -->|fail · max 3 retries| DEV_A
+            Q_A -->|pass| PR_A(["PR opened"])
+        end
+
+        subgraph TL_B ["🧑‍✈️ Tech Lead · issue B"]
+            direction TB
+            SD_B["Strategy &amp; Design"] --> AS_B["Architecture &amp; Security"]
+            AS_B --> DEV_B["Development"]
+            DEV_B --> Q_B{"Quality<br/>full suite?"}
+            Q_B -->|fail · max 3 retries| DEV_B
+            Q_B -->|pass| PR_B(["PR opened"])
+        end
+
+        subgraph TL_N ["🧑‍✈️ Tech Lead · issue N"]
+            direction TB
+            SD_N["Strategy &amp; Design"] --> AS_N["Architecture &amp; Security"]
+            AS_N --> DEV_N["Development"]
+            DEV_N --> Q_N{"Quality<br/>full suite?"}
+            Q_N -->|fail · max 3 retries| DEV_N
+            Q_N -->|pass| PR_N(["PR opened"])
+        end
+    end
+
+    STD["📏 <b>Standards &amp; Consistency</b><br/>conventions reference · contracts ·<br/>design system · shared libraries"]
+
+    AS_A -.->|validate spec| STD
+    AS_B -.->|validate spec| STD
+    AS_N -.->|validate spec| STD
+    DEV_A -.->|pre-flight check| STD
+    DEV_B -.->|pre-flight check| STD
+    DEV_N -.->|pre-flight check| STD
+    STD -.->|BLOCKING / ADVISORY findings| DEV_A
+    STD -.->|BLOCKING / ADVISORY findings| DEV_B
+    STD -.->|BLOCKING / ADVISORY findings| DEV_N
+
+    PR_A --> INT
+    PR_B --> INT
+    PR_N --> INT
+
+    INT{"🔀 <b>Integrator</b><br/>merge in dependency order ·<br/>resolve conflicts ·<br/>re-run FULL suite after every merge"}
+
+    INT -->|"regression / conflict"| FIX["Development<br/>(integration fix)"]
+    FIX --> INT
+    INT -->|"wave green · waves remaining"| DISP
+    INT -->|"wave green · epic complete"| OPS
+
+    OPS["🚀 <b>Platform &amp; Ops</b><br/>CI/CD · deploy · monitoring · rollback"]
+    OPS --> done([✅ Shipped])
+
+    DISP -.->|"can't batch safely:<br/>overlap / cycle / too coarse"| PM
+    TL_A -.->|scope changed| PM
+    SD_A -.->|backlog / scope change| PM
+    OPS -.->|production feedback| PM
+
+    classDef coord fill:#1f6feb,stroke:#0b3d91,color:#fff
+    classDef side fill:#8250df,stroke:#4c2889,color:#fff
+    classDef ship fill:#1a7f37,stroke:#0f5323,color:#fff
+    class PM,DISP,INT coord
+    class STD side
+    class OPS ship
+```
+
+<details>
+<summary>Same pipeline as an ASCII diagram</summary>
 
 ```
                           Raw Idea from User
@@ -78,6 +166,8 @@ Per-issue pipelines are only safe if something owns the *scheduling* and somethi
                                        (revise + re-expand issues)
 ```
 
+</details>
+
 ## Installation
 
 ```shell
@@ -110,7 +200,13 @@ copilot plugin uninstall agentic-sdlc
 
 ## Usage
 
-Start new work with the **Product Manager** agent — it is the entry point for this pattern:
+The fastest way in is the `/new-idea` command, which drops your raw idea straight into the **Product Manager** agent:
+
+```
+/new-idea users should be able to share saved designs with a public link
+```
+
+Or invoke the entry-point agent directly:
 
 ```
 /agent Product Manager
@@ -137,31 +233,70 @@ If you already have a well-specified issue, you can skip straight to **Tech Lead
 | **Integrator** | Runs after concurrent pipelines finish. Merges/rebases each PR into the epic's integration branch in dependency order, resolves conflicts preserving both sides' intent, and re-runs the full test suite after **every** merge to catch cross-feature regressions Quality never saw. Verifies migrations apply from scratch and that every issue's acceptance criteria still hold post-merge. **Handoffs:** → Development (report integration failure), → Dispatcher (wave integrated), → Platform & Ops (deploy epic), → Tech Lead (escalate integration conflict). |
 | **Platform & Ops** | Platform engineering, DevOps, SRE, and security operations. Final agent in the chain — reached from Quality in single-issue mode or from Integrator once all waves are integrated: infrastructure, CI/CD, deployment with rollback, monitoring, and alerting. **Handoffs:** → Development (report app issue), → Architecture & Security (report infra issue), → Strategy & Design (new feature request). |
 
+## Skills
+
+Shared, agent-agnostic references that keep the pipeline DRY. Several agents cite the same skill so there is exactly one definition of each rule.
+
+| Skill | What it defines | Used by |
+|-------|-----------------|---------|
+| **`implementation-plan-format`** | The canonical template for expanding a GitHub issue into an atomic, autonomous-agent-ready plan — Context, Given-When-Then acceptance criteria, technical approach, an explicit file/module list, test plan, definition of done, out of scope, and `Blocked by:` / `Blocks:` dependencies. Includes the atomicity test and the readiness check. | Product Manager (writes it), Dispatcher (validates against it) |
+| **`parallel-safety-check`** | Nine serialization rules and an eight-step procedure for deciding whether issues can run concurrently: diff their file scopes, check declared dependencies, detect shared migrations/schemas/contracts/registries/lockfiles, build a maximal safe wave, record the reasoning in the epic, re-batch after every wave. Bias is explicit — when in doubt, serialize. | Dispatcher (batching), Integrator (diagnosing collisions) |
+| **`quality-gate-checklist`** | The single source of truth for "done": the full lint / type-check / unit / integration / E2E / coverage / build suite across the **entire** codebase, the integration-time extras, the `/tmp` prohibition with approved alternatives, and the pass/fail certification report format. | Quality, Tech Lead, Integrator, Development |
+
+## Hooks
+
+Two hooks in `hooks.json` back the global rules with mechanical enforcement instead of relying on prose alone.
+
+| Hook | Event | Behavior |
+|------|-------|----------|
+| **`deny-tmp-paths`** | `preToolUse` | Inspects shell-executing tool calls and **denies** any command referencing a hardcoded `/tmp` or `/var/tmp` path, returning a reason that points at the approved alternatives (`mktemp -d`, `tempfile.mkdtemp()`, pytest `tmp_path`, `fs.mkdtemp()`, `$RUNNER_TEMP`). Ignores non-shell tools and does not trip on `$TMPDIR`, `mktemp`, or paths that merely contain "tmp". |
+| **`session-context`** | `sessionStart` | Injects a short, persona-agnostic reminder that the session is part of the agentic-sdlc pipeline: stay in whichever agent persona is active, use the declared handoffs rather than doing another agent's job, and honor the full-suite and no-`/tmp` rules defined by the `quality-gate-checklist` skill. |
+
+Both hooks ship as `bash` and `powershell` variants under `hooks/` and always exit `0` — `preToolUse` command hooks are fail-closed, so a script error must never block legitimate work.
+
+## Commands
+
+| Command | What it does |
+|---------|--------------|
+| **`/new-idea [idea]`** | The front door to the pipeline. Captures a raw idea (prompting for one if not supplied), confirms the target GitHub repository, and hands off to **Product Manager** with instructions to run research → strategy & design → epics → atomic issues → expansion → **Dispatcher**. It deliberately does not design, decide scope, or create issues itself. |
+
 ## Repository layout
 
 ```text
 agentic-sdlc/
 ├── plugin.json                          # Plugin manifest
+├── hooks.json                           # Hook configuration
 ├── README.md
 ├── LICENSE
 ├── .gitignore
-└── agents/
-    ├── product-manager.agent.md         # Product Manager  (entry point)
-    ├── dispatcher.agent.md              # Dispatcher       (parallel scheduling)
-    ├── orchestrator.agent.md            # Tech Lead
-    ├── strategy-design.agent.md         # Strategy & Design
-    ├── architecture-security.agent.md   # Architecture & Security
-    ├── standards.agent.md               # Standards & Consistency
-    ├── development.agent.md             # Development
-    ├── quality.agent.md                 # Quality
-    ├── integrator.agent.md              # Integrator       (merge + regression)
-    └── platform-ops.agent.md            # Platform & Ops
+├── agents/
+│   ├── product-manager.agent.md         # Product Manager  (entry point)
+│   ├── dispatcher.agent.md              # Dispatcher       (parallel scheduling)
+│   ├── orchestrator.agent.md            # Tech Lead
+│   ├── strategy-design.agent.md         # Strategy & Design
+│   ├── architecture-security.agent.md   # Architecture & Security
+│   ├── standards.agent.md               # Standards & Consistency
+│   ├── development.agent.md             # Development
+│   ├── quality.agent.md                 # Quality
+│   ├── integrator.agent.md              # Integrator       (merge + regression)
+│   └── platform-ops.agent.md            # Platform & Ops
+├── skills/
+│   ├── implementation-plan-format/SKILL.md
+│   ├── parallel-safety-check/SKILL.md
+│   └── quality-gate-checklist/SKILL.md
+├── hooks/
+│   ├── deny-tmp-paths.sh                # preToolUse  (bash)
+│   ├── deny-tmp-paths.ps1               # preToolUse  (powershell)
+│   ├── session-context.sh               # sessionStart (bash)
+│   └── session-context.ps1              # sessionStart (powershell)
+└── commands/
+    └── new-idea.md                      # /new-idea
 ```
 
 ## Global rules enforced across every agent
 
-- **All tests must pass — the entire suite, every time.** Lint, type checks, unit, integration, E2E, coverage thresholds, and the build. "Pre-existing" and "unrelated" failures still block completion, per branch (Quality) and after every merge (Integrator).
-- **Never write to `/tmp` or system temp directories.** Use `tempfile`/`tmp_path`, `fs.mkdtemp`, `mktemp -d`, or `$RUNNER_TEMP`.
+- **All tests must pass — the entire suite, every time.** Lint, type checks, unit, integration, E2E, coverage thresholds, and the build. "Pre-existing" and "unrelated" failures still block completion, per branch (Quality) and after every merge (Integrator). Defined in full by the `quality-gate-checklist` skill.
+- **Never write to `/tmp` or system temp directories.** Use `tempfile`/`tmp_path`, `fs.mkdtemp`, `mktemp -d`, or `$RUNNER_TEMP`. Enforced mechanically by the `deny-tmp-paths` `preToolUse` hook.
 - **No shortcuts, no deferrals, no placeholders.** No TODOs, no FIXMEs, no "TBD" acceptance criteria.
 - **Respect established patterns and technology choices.** New frameworks or databases require explicit Architecture & Security review with justification, and Standards & Consistency treats duplicate abstractions as BLOCKING.
 - **Parallel pipelines stay in their lane.** Concurrent Tech Lead runs work only inside the file scope declared in their issue, on their own branch, and never change shared contracts unilaterally.

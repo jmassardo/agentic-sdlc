@@ -84,6 +84,8 @@ Before reporting completion, verify every item:
 - [ ] Dependencies recorded with "Blocked by #N" / "Blocks #N"
 
 ## Expansion
+> Use the **`implementation-plan-format` skill** as the canonical template for every expanded issue. It defines the exact sections, the section-by-section rules, the atomicity test, and the readiness check Dispatcher will apply. Do not improvise a different shape.
+
 - [ ] Every issue has Given-When-Then acceptance criteria
 - [ ] Every issue has a technical approach section
 - [ ] Every issue names the specific files/modules to create or modify

@@ -85,6 +85,8 @@ Dispatcher (wave complete: N certified PRs)
 - [ ] No duplicated abstractions introduced by parallel work (two helpers doing the same job)
 
 ## Full Suite — ENTIRE codebase, not just changed files
+> The **`quality-gate-checklist` skill** defines this suite and its integration-time extras. Run all of it after **every single merge** — per-branch certification never saw the combined state.
+
 - [ ] Lint passes everywhere (Ruff, ESLint)
 - [ ] Type checks pass everywhere (mypy, TypeScript)
 - [ ] All unit tests pass (pytest, Vitest)

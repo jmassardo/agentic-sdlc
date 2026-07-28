@@ -175,11 +175,17 @@ You should:
 
 These rules apply to ALL sub-agents in every phase. Ensure each sub-agent is reminded of these when spawned:
 
+> **Source of truth: the `quality-gate-checklist` skill.** That skill defines the complete, canonical
+> gate — the full lint / type-check / unit / integration / E2E / coverage / build suite, the `/tmp`
+> prohibition, and the pass/fail report format. Read it before certifying, rejecting, or accepting any
+> phase output, and point every sub-agent at it when you spawn them. The summaries below are the
+> enforcement instructions you apply; the skill is the definition you apply them against.
+
 ### ALL Tests Must Pass — The Entire Suite, Every Time
 
 **No agent may declare work complete unless the ENTIRE test suite passes.** This is the most critical quality gate.
 
-**"All tests" means:**
+**"All tests" means** (full definition in the `quality-gate-checklist` skill):
 - Every lint rule across the entire codebase (Ruff, ESLint)
 - Every type check across the entire codebase (mypy, TypeScript)
 - Every unit test in every module (pytest, Vitest) — not just tests related to the change
@@ -197,7 +203,7 @@ These rules apply to ALL sub-agents in every phase. Ensure each sub-agent is rem
 
 ### NEVER Use `/tmp` or System Temp Directories
 
-**No agent may write files to `/tmp`, `/var/tmp`, or any hardcoded system temporary directory.** This applies to scripts, tests, CI/CD pipelines, build processes, and runtime code.
+**No agent may write files to `/tmp`, `/var/tmp`, or any hardcoded system temporary directory.** This applies to scripts, tests, CI/CD pipelines, build processes, and runtime code. The full rationale and the complete list of approved alternatives live in the `quality-gate-checklist` skill; this plugin also enforces the rule mechanically via a `preToolUse` hook that denies shell commands referencing those paths.
 
 - Python: Use `tempfile.mkdtemp()` or pytest `tmp_path` fixtures
 - TypeScript/Node: Use `os.tmpdir()` with unique subdirs, or `fs.mkdtemp()`
