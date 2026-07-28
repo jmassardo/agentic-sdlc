@@ -183,104 +183,104 @@ flowchart TD
 ```
 
 <details>
-<summary>Same pipeline as an ASCII diagram</summary>
+<summary>The same pipeline as a sequence of handoffs over time</summary>
 
-```
-                          Raw Idea from User
-                                  ↓
-        ┌─────────────────────────────────────────────────────┐
-        │ Product Manager                                     │
-        │  research → epics (milestones + tracking issues)    │
-        │  → atomic issues → expanded implementation plans    │
-        └─────────────────────────────────────────────────────┘
-                                  ↓
-        ┌─────────────────────────────────────────────────────┐
-        │ Dispatcher                                          │
-        │  dependency + file-conflict graph → parallel-safe   │
-        │  waves → dispatch one pipeline per issue           │
-        └─────────────────────────────────────────────────────┘
-                                  ↓
-        ╔═════════════════════════════════════════════════════╗
-        ║ 🧑 HUMAN APPROVAL REQUIRED                          ║
-        ║   proposed wave · why parallel-safe · scope         ║
-        ╚═════════════════════════════════════════════════════╝
-                                  ↓
-    ┌──────────────┬──────────────┴──────────────┬──────────────┐
-    ▼              ▼                             ▼              ▼
-┌─────────┐   ┌─────────┐                   ┌─────────┐   ┌─────────┐
-│Tech Lead│   │Tech Lead│                   │Tech Lead│   │Tech Lead│
-│ issue A │   │ issue B │       ...         │ issue C │   │ issue N │
-├─────────┤   ├─────────┤                   ├─────────┤   ├─────────┤
-│Strategy │   │Strategy │                   │Strategy │   │Strategy │
-│   ↓     │   │   ↓     │                   │   ↓     │   │   ↓     │
-│Architect│◄──┼─────────┼── Standards &  ───┼─────────┼──►│Architect│
-│   ↓     │   │   ↓     │   Consistency     │   ↓     │   │   ↓     │
-│Develop  │──►│ (spec + pre-flight checks)  │◄────────┼───│Develop  │
-│   ↓     │   │   ↓     │                   │   ↓     │   │   ↓     │
-│Reviewer │   │Reviewer │   scope · spec ·  │Reviewer │   │Reviewer │
-│ ↑change │   │ ↑change │   symbols exist?  │ ↑change │   │ ↑change │
-│ └─►Dev  │   │ └─►Dev  │                   │ └─►Dev  │   │ └─►Dev  │
-│   ↓ok   │   │   ↓ok   │                   │   ↓ok   │   │   ↓ok   │
-│Quality  │   │Quality  │                   │Quality  │   │Quality  │
-│ ↑fail   │   │ ↑fail   │                   │ ↑fail   │   │ ↑fail   │
-│ └─►Dev  │   │ └─►Dev  │  (max 3 retries)  │ └─►Dev  │   │ └─►Dev  │
-│   ↓pass │   │   ↓pass │                   │   ↓pass │   │   ↓pass │
-│   PR    │   │   PR    │                   │   PR    │   │   PR    │
-└────┬────┘   └────┬────┘                   └────┬────┘   └────┬────┘
-     └─────────────┴───────────┬───────────────┴──────────────┘
-                               ▼
-        ┌─────────────────────────────────────────────────────┐
-        │ Integrator                                          │
-        │  merge/rebase into the integration branch in        │
-        │  dependency order → resolve conflicts →             │
-        │  RE-RUN FULL SUITE after every merge                │
-        │     ├── regression ──► Development (fix)            │
-        │     └── green                                       │
-        └─────────────────────────────────────────────────────┘
-          ↓                    ↓                     ↓
-  waves remaining        epic complete      milestone closed /
-          ↓                    ↓            every ~3 waves
-    Dispatcher                 ↓                     ↓
- (re-batch next wave)  ╔═══════════════════╗  ┌──────────────┐
-                       ║ 🧑 HUMAN APPROVAL ║  │Retrospective │
-                       ║ merge → main      ║  │ duplication  │
-                       ╚═══════════════════╝  │ drift · debt │
-                                 ↓            └──────┬───────┘
-                          Platform & Ops             │
-                      (CI/CD, deploy, monitor)       │
-                                 ↓                   │
-                               ✅ Done               │
-                                 │                   │
-            backlog / scope      │   prioritized,    │
-            change               │   atomic cleanup  │
-                                 ▼   issues          ▼
-                            ┌──────────────────────────┐
-                            │     Product Manager      │
-                            │ (revise + re-expand, and │
-                            │  schedule debt paydown)  │
-                            └──────────────────────────┘
+The flowchart above shows the topology. This shows the chronology — who talks to whom, in what order, and what lands on the GitHub issue at each step.
 
-  ═══════════════════════════════════════════════════════════════════
-   Running alongside every box above: GitHub Issues (system of record)
-  ═══════════════════════════════════════════════════════════════════
-   Every agent above posts to the issue as it works, so a human can
-   watch all N concurrent pipelines from the repo's issue list:
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Human
+    participant PM as 🧭 Product Manager
+    participant DISP as 🗂️ Dispatcher
+    participant TL as 🧑‍✈️ Tech Lead ×N
+    participant STD as 📏 Standards
+    participant INT as 🔀 Integrator
+    participant RETRO as 🔁 Retrospective
+    participant OPS as 🚀 Platform & Ops
+    participant GH as 📋 GitHub Issues
 
-     Product Manager  → creates the issue + milestone     status:backlog
-     Dispatcher       → wave composition, per-issue       status:queued
-                        dispatch, human approval record   status:in-progress
-     Tech Lead        → a comment at every phase change
-     Development      → what was built, files, gate state
-     Reviewer         → approval or numbered findings      status:in-review
-                        (every changes-requested cycle)
-     Quality          → certification or defect report     status:in-testing
-     Integrator       → per-issue merge result + wave      status:integrated
-                        result on the epic, main sign-off
-     Retrospective    → files new issues                   tech-debt
-     Platform & Ops   → what shipped, where, rollback      status:deployed
+    Human->>PM: raw idea
+    PM->>PM: research · strategy & design · epics
+    PM->>GH: milestone + epic issue + atomic issues (status:backlog)
+    PM->>GH: expand each issue with an implementation plan
+    PM->>DISP: backlog is expanded and ready
 
-   No work happens outside an issue. If it is not on the issue,
-   a human cannot see it — and it did not happen.
+    loop until the epic's queue is empty
+        DISP->>DISP: dependency + file-conflict graph → parallel-safe wave
+        DISP->>GH: proposed wave posted to the epic (needs-human)
+
+        rect rgba(191, 135, 0, 0.18)
+            DISP->>Human: 🧑 approve this wave? (issues · safety reasoning · scope)
+            Human-->>DISP: go-ahead
+        end
+
+        DISP->>GH: status:queued → status:in-progress, wave:N
+        DISP->>TL: dispatch one pipeline per issue (own branch each)
+
+        par issue A
+            TL->>TL: Strategy & Design → Architecture & Security
+            TL->>STD: validate spec against conventions
+            STD-->>TL: APPROVED / BLOCKING findings
+            TL->>TL: Development
+            TL->>STD: pre-flight consistency check
+            STD-->>TL: findings
+            TL->>GH: built X · files touched · gate status
+            TL->>TL: Reviewer — diff vs. plan, symbols exist?
+            alt changes requested
+                TL->>GH: numbered BLOCKING findings (retry n of 3)
+                TL->>TL: back to Development
+            else approved
+                TL->>GH: status:in-review → status:in-testing
+                TL->>TL: Quality — FULL suite
+                alt suite fails
+                    TL->>GH: defect report (retry n of 3)
+                    TL->>TL: back to Development
+                else suite passes
+                    TL->>GH: certification report
+                end
+            end
+        and issue B
+            TL->>TL: same pipeline, disjoint files, own branch
+        and issue N
+            TL->>TL: same pipeline, disjoint files, own branch
+        end
+
+        TL->>INT: PRs open, branches certified in isolation
+        INT->>INT: merge in dependency order · resolve conflicts
+        INT->>INT: RE-RUN FULL SUITE after every single merge
+
+        alt cross-feature regression or conflict
+            INT->>GH: comment on BOTH implicated issues
+            INT->>TL: back to Development for an integration fix
+            TL-->>INT: fixed
+        else wave green
+            INT->>GH: status:integrated + wave result on the epic
+        end
+
+        opt milestone closed or every ~3 waves
+            INT->>RETRO: run a drift scan
+            RETRO->>RETRO: duplication · convention drift · pattern decay · debt
+            RETRO->>PM: prioritized, atomic cleanup tasks
+            PM->>GH: file them as tech-debt issues
+        end
+
+        alt waves remaining
+            INT-->>DISP: re-batch the next wave
+        else epic complete
+            INT->>GH: merge proposal for main (needs-human)
+            rect rgba(191, 135, 0, 0.18)
+                INT->>Human: 🧑 approve merge to main?
+                Human-->>INT: go-ahead
+            end
+            INT->>OPS: integrated + approved
+            OPS->>OPS: CI/CD · deploy · monitoring · rollback
+            OPS->>GH: status:deployed
+            OPS-->>Human: ✅ shipped
+        end
+    end
+
+    Note over GH: No work happens outside an issue.<br/>If it is not on the issue, a human cannot see it — and it did not happen.
 ```
 
 </details>
@@ -382,38 +382,45 @@ Both hooks ship as `bash` and `powershell` variants under `hooks/` and always ex
 
 ## Repository layout
 
-```text
-agentic-sdlc/
-├── plugin.json                          # Plugin manifest
-├── hooks.json                           # Hook configuration
-├── README.md
-├── LICENSE
-├── .gitignore
-├── agents/
-│   ├── product-manager.agent.md         # Product Manager  (entry point)
-│   ├── dispatcher.agent.md              # Dispatcher       (parallel scheduling)
-│   ├── orchestrator.agent.md            # Tech Lead
-│   ├── strategy-design.agent.md         # Strategy & Design
-│   ├── architecture-security.agent.md   # Architecture & Security
-│   ├── standards.agent.md               # Standards & Consistency
-│   ├── development.agent.md             # Development
-│   ├── reviewer.agent.md                # Reviewer         (hallucination gate)
-│   ├── quality.agent.md                 # Quality
-│   ├── integrator.agent.md              # Integrator       (merge + regression)
-│   ├── retrospective.agent.md           # Retrospective    (periodic debt scan)
-│   └── platform-ops.agent.md            # Platform & Ops
-├── skills/
-│   ├── github-issue-tracking/SKILL.md
-│   ├── implementation-plan-format/SKILL.md
-│   ├── parallel-safety-check/SKILL.md
-│   └── quality-gate-checklist/SKILL.md
-├── hooks/
-│   ├── deny-tmp-paths.sh                # preToolUse  (bash)
-│   ├── deny-tmp-paths.ps1               # preToolUse  (powershell)
-│   ├── session-context.sh               # sessionStart (bash)
-│   └── session-context.ps1              # sessionStart (powershell)
-└── commands/
-    └── new-idea.md                      # /new-idea
+```mermaid
+flowchart LR
+    ROOT["📦 <b>agentic-sdlc/</b>"]
+
+    ROOT --> MANIFEST["plugin.json<br/><i>plugin manifest</i>"]
+    ROOT --> HOOKCFG["hooks.json<br/><i>hook configuration</i>"]
+    ROOT --> DOCS["README.md · LICENSE · .gitignore"]
+    ROOT --> AGENTS["<b>agents/</b>"]
+    ROOT --> SKILLS["<b>skills/</b>"]
+    ROOT --> HOOKS["<b>hooks/</b>"]
+    ROOT --> CMDS["<b>commands/</b>"]
+
+    AGENTS --> A1["product-manager.agent.md<br/><i>Product Manager · entry point</i>"]
+    AGENTS --> A2["dispatcher.agent.md<br/><i>Dispatcher · parallel scheduling</i>"]
+    AGENTS --> A3["orchestrator.agent.md<br/><i>Tech Lead</i>"]
+    AGENTS --> A4["strategy-design.agent.md<br/><i>Strategy &amp; Design</i>"]
+    AGENTS --> A5["architecture-security.agent.md<br/><i>Architecture &amp; Security</i>"]
+    AGENTS --> A6["standards.agent.md<br/><i>Standards &amp; Consistency</i>"]
+    AGENTS --> A7["development.agent.md<br/><i>Development</i>"]
+    AGENTS --> A8["reviewer.agent.md<br/><i>Reviewer · hallucination gate</i>"]
+    AGENTS --> A9["quality.agent.md<br/><i>Quality</i>"]
+    AGENTS --> A10["integrator.agent.md<br/><i>Integrator · merge + regression</i>"]
+    AGENTS --> A11["retrospective.agent.md<br/><i>Retrospective · periodic debt scan</i>"]
+    AGENTS --> A12["platform-ops.agent.md<br/><i>Platform &amp; Ops</i>"]
+
+    SKILLS --> S1["github-issue-tracking/SKILL.md"]
+    SKILLS --> S2["implementation-plan-format/SKILL.md"]
+    SKILLS --> S3["parallel-safety-check/SKILL.md"]
+    SKILLS --> S4["quality-gate-checklist/SKILL.md"]
+
+    HOOKS --> H1["deny-tmp-paths.sh / .ps1<br/><i>preToolUse</i>"]
+    HOOKS --> H2["session-context.sh / .ps1<br/><i>sessionStart</i>"]
+
+    CMDS --> C1["new-idea.md<br/><i>/new-idea</i>"]
+
+    classDef dir fill:#1f6feb,stroke:#0b3d91,color:#fff
+    classDef root fill:#24292f,stroke:#010409,color:#fff
+    class ROOT root
+    class AGENTS,SKILLS,HOOKS,CMDS dir
 ```
 
 ## Global rules enforced across every agent
