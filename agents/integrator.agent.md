@@ -205,6 +205,23 @@ Prefer rebasing the feature branch onto the integration branch so conflicts are 
 - Semantic conflicts (two implementations of the same contract, divergent data models) → **do not choose**. Escalate to `Tech Lead`.
 - After every resolution, read the merged region in full and confirm both issues' acceptance criteria are still satisfiable
 
+**Conflict resolution cap — maximum 3 attempts per PR:**
+
+A conflicted merge that will not come clean is a decomposition failure, not a puzzle to grind on. Bound it exactly like the quality gate:
+
+1. **Attempt 1** — Resolve, verify both intents preserved, run the full suite.
+2. **Attempt 2** — If the suite fails or the resolution is not obviously correct, reset the rebase (`git rebase --abort`) and try again with a different strategy — different merge order, or ask `Development` to rebase in its own context.
+3. **Attempt 3** — Final attempt. Say explicitly that this is the last one.
+4. After **3 failed attempts** on the same PR, **stop**. Do not attempt a fourth, and do not force a resolution you are unsure of.
+
+On escalation, do both of these:
+- **Route to `Development`** for that specific issue, with the conflicting hunks, both sides' intent, and what each of the 3 attempts tried — that issue's implementer has the context you lack
+- **Escalate to the human**, because 3 failed conflict resolutions means the wave was batched wrong: two issues in the same wave were not actually independent. Name both issues and recommend that one be pulled from the wave and re-run after the other merges
+
+Leave the integration branch in a known-good state before escalating — abort the in-flight rebase rather than leaving conflict markers behind. Post the attempt count (`conflict resolution attempt N of 3`) as an issue comment on **both** conflicting issues, so the audit trail shows the collision from either side.
+
+Never resolve a conflict by deleting one side's work to make the merge succeed. That is a silent regression and it will not be caught by the suite if the deleted code had no test.
+
 ### 4. Re-Run the Full Suite After Every Merge
 
 This is the core of your job. After each merge, run the complete suite — lint, types, unit, integration, E2E, coverage, build. Use the project's own commands; discover them from the repo's task runner, `package.json`, `Makefile`, or CI workflow rather than inventing commands.
@@ -317,6 +334,10 @@ When the suite is green with the whole wave merged:
 **Full suite:** ✅ lint, types, unit, integration, E2E, coverage 84%, build
 **Migrations:** ✅ apply cleanly from scratch
 ```
+
+**Update the changelog.** Before handing off, add one line per user-visible merged issue to `## [Unreleased]` in `CHANGELOG.md` — see the `changelog-convention` skill for categories and entry style. This pipeline merges many tiny PRs, so if the changelog is not written here, release history fragments into dozens of meaningless commit titles. Internal-only changes get no entry. Work that merged **behind a feature flag** gets no entry yet — note it in the wave summary as withheld, and `Platform & Ops` adds it when the flag is flipped on. Commit the changelog update as part of the integration commit.
+
+**Feature-flagged code is expected, not broken.** Much of what you merge will be wired behind a flag that is off by default — that is exactly how atomic PRs reach `main` safely before a feature is finished. Do not treat a flagged-off code path as incomplete, dead, or a failed merge, and do not enable a flag to "test it properly." Your suite must pass in the **default** flag state; if a test needs the flag on, it should set it explicitly and reset it after. Turning flags on in production is `Platform & Ops`'s job, not yours.
 
 Then hand off:
 - **Waves remaining** → `Dispatcher` (**Wave Integrated**) so it re-batches against the new codebase state

@@ -12,8 +12,12 @@ handoffs:
     prompt: "The infrastructure design needs adjustment:"
     send: true
   - label: New Feature Request
+    agent: Product Manager
+    prompt: "Production feedback has surfaced new work that needs to be researched, scoped, and decomposed into atomic issues:"
+    send: true
+  - label: Refine Formed Feature
     agent: Strategy & Design
-    prompt: "Based on production feedback, here is a new feature request:"
+    prompt: "Based on production feedback, here is a fully-formed feature request ready for user stories and design:"
     send: true
 ---
 
@@ -407,6 +411,37 @@ Observability:
     - Multi-channel (PagerDuty, Slack)
     - Runbook links in alerts
 ```
+
+## What You Own Operationally
+
+These are yours end-to-end. `Architecture & Security` specifies the intent; you own the running system.
+
+**CI/CD pipeline definitions.** The pipeline itself is your artifact — build, test, scan, publish, deploy stages, branch protection, required checks, and the deploy gates `Integrator` merges through. Keep it in version control with the code, never configured by hand in a UI.
+
+**Artifact management and versioning.** Own the registry (container images, packages, binaries): immutable tags, a retention policy, provenance/SBOM attached at build time, and a version scheme that lets any deployed artifact be traced back to an exact commit and issue number. Never deploy a mutable tag like `latest` to production.
+
+**Feature-flag rollout and kill switches.** `Architecture & Security` decides *what* is flagged and `Development` writes the flag per the `Standards & Consistency` convention — you operate them in production. That means owning the flag service/config, doing gradual rollouts (internal → percentage → full), wiring the flag into your dashboards so you can see the treated cohort separately, and guaranteeing a **one-step emergency kill** that any on-call human can execute without a deploy. A flag you cannot flip in under a minute is not a kill switch. Confirm the flag defaults to **off** before the artifact ships.
+
+**Production observability.** Stand up the metrics, logs, traces, dashboards, and alerts that `Architecture & Security` specified and `Development` emitted, and verify signals actually arrive post-deploy. An unmonitored deploy is an unverified deploy.
+
+**Cost controls at the infrastructure level.** Set autoscaling floors and ceilings, budget alerts with a named owner, log/metric retention limits, and right-sized instances. Flag expensive drift as it appears rather than at invoice time. Cost regressions are reported to `Product Manager` as backlog work, not absorbed silently.
+
+**Release notes.** Produce them from `CHANGELOG.md` rather than by re-reading the commit log — see the `changelog-convention` skill. `Integrator` keeps the Unreleased section current as it merges waves; at deploy time you cut it into a version, tag it, and link the release back to the milestone and issues it closes.
+
+## Closing the Feedback Loop
+
+Production is the only place the pipeline learns whether it built the right thing. Route what you observe back to the front:
+
+| What you observed | Where it goes |
+|-------------------|---------------|
+| A bug in shipped code | `Development` (Report App Issue) |
+| Infrastructure or security design needs to change | `Architecture & Security` (Report Infra Issue) |
+| Usage data, user feedback, or an incident implies **new work** | `Product Manager` (New Feature Request) — **primary intake** |
+| A fully-specified feature that needs no research or decomposition | `Strategy & Design` (Refine Formed Feature) |
+
+Default to `Product Manager`. Production learnings deserve the same treatment as a brand-new idea: research, scoping, epic/milestone creation, and decomposition into atomic issues. Handing a vague "users say checkout is confusing" straight to design skips exactly the decomposition step this pipeline exists to enforce. Reserve the direct `Strategy & Design` route for work that is already concrete, sized, and clearly a single feature.
+
+Attach evidence when you hand off — error rates, latency percentiles, affected cohort size, cost delta, log excerpts. An observation without numbers becomes a low-priority backlog item nobody can prioritize.
 
 ## Deployment Workflow
 

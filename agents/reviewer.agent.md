@@ -290,7 +290,26 @@ Be strict about BLOCKING and sparing with ADVISORY. Every BLOCKING finding must 
 
 On a returned change, re-verify **the fixed findings plus anything the fix touched** — a fix routinely introduces its own hallucination. Do not re-run the full review from scratch, but never assume a fix is clean because it is small.
 
-### 8. Concurrency Awareness
+### 8. Review Cycle Cap — Maximum 3 Round-Trips
+
+The `Reviewer` ↔ `Development` loop is bounded exactly like the quality gate:
+
+1. **Cycle 1** — Full review. Findings returned to `Development` with file, line, and required fix.
+2. **Cycle 2** — Re-review the fixes and what they touched. Same finding returned twice means the fix did not land.
+3. **Cycle 3** — Final attempt. Be explicit that this is the last cycle before escalation.
+4. Maximum **3 review cycles**. If BLOCKING findings remain after 3 cycles, **stop and escalate to the human** — do not open cycle 4.
+
+Label each returned review `review cycle N of 3` in both the handoff prompt and the issue comment, so the retry count is visible in the audit trail rather than buried in agent context.
+
+On escalation, post an issue comment and report to the user with:
+- Which findings are still unresolved, and their exact file and line
+- What was attempted in each of the 3 cycles and why it did not resolve
+- Your read on **why** the loop stalled — an ambiguous implementation plan, a spec that cannot be satisfied as written, a missing dependency, or an incorrect original decomposition
+- A concrete recommendation: revise the plan (`Product Manager`), revise the spec (`Architecture & Security`), split the issue, or accept with a documented follow-up issue
+
+A stalled review loop is a signal about the **issue**, not the implementer. Three failed cycles usually means the issue was not atomic enough to begin with — say so plainly.
+
+### 9. Concurrency Awareness
 
 When `Dispatcher` has several pipelines in flight, you are reviewing N changes that will later be merged together by `Integrator`. In that mode:
 - Treat any edit to a **shared contract, schema, or registry** as a serious scope finding — the issue was batched into its wave on the assumption it would not touch those
