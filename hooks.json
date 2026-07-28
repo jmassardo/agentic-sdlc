@@ -7,6 +7,12 @@
         "bash": "bash \"${PLUGIN_ROOT}/hooks/deny-tmp-paths.sh\"",
         "powershell": "pwsh -NoProfile -File \"${PLUGIN_ROOT}/hooks/deny-tmp-paths.ps1\"",
         "timeoutSec": 10
+      },
+      {
+        "type": "command",
+        "bash": "bash \"${PLUGIN_ROOT}/hooks/deny-secrets.sh\"",
+        "powershell": "pwsh -NoProfile -File \"${PLUGIN_ROOT}/hooks/deny-secrets.ps1\"",
+        "timeoutSec": 10
       }
     ],
     "sessionStart": [
